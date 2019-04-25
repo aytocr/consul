@@ -4,3 +4,5 @@ ajajaja
 
 25-4-2019 pongo mas cosas para probar actualizacion a produccion con
 Capistrano
+
+Mas pequenyas modificaciones 
