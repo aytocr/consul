@@ -1,8 +1,8 @@
 require "rails_helper"
 
-feature "Admin shifts" do
+describe "Admin shifts" do
 
-  background do
+  before do
     admin = create(:administrator)
     login_as(admin.user)
   end
@@ -22,12 +22,14 @@ feature "Admin shifts" do
     expect(page).to have_css(".shift", count: 1)
     expect(page).to have_content I18n.l(Date.current, format: :long)
     expect(page).to have_content officer.name
+    expect(page).to have_content officer.email
 
     visit new_admin_booth_shift_path(booth2)
 
     expect(page).to have_css(".shift", count: 1)
     expect(page).to have_content I18n.l(Time.zone.tomorrow, format: :long)
     expect(page).to have_content officer.name
+    expect(page).to have_content officer.email
   end
 
   scenario "Create Vote Collection Shift and Recount & Scrutiny Shift on same date", :js do
@@ -120,6 +122,24 @@ feature "Admin shifts" do
     expect(page).to have_select("shift_date_vote_collection_date", options: ["Select day", *vote_collection_dates])
     select "Recount & Scrutiny", from: "shift_task"
     expect(page).to have_select("shift_date_recount_scrutiny_date", options: ["Select day", *recount_scrutiny_dates])
+  end
+
+  scenario "Change option from Recount & Scrutinity to Collect Votes", :js do
+    booth = create(:poll_booth)
+    officer = create(:poll_officer)
+
+    create(:poll_shift, :vote_collection_task, officer: officer, booth: booth)
+    create(:poll_shift, :recount_scrutiny_task, officer: officer, booth: booth)
+
+    visit new_admin_booth_shift_path(booth, officer_id: officer.id)
+
+    select "Recount & Scrutiny", from: "shift_task"
+
+    expect(page).to have_select("shift_date_recount_scrutiny_date", options: ["Select day"])
+
+    select "Collect Votes", from: "shift_task"
+
+    expect(page).to have_select("shift_date_vote_collection_date", options: ["Voting days ended"])
   end
 
   scenario "Error on create", :js do
@@ -229,6 +249,7 @@ feature "Admin shifts" do
 
     expect(page).to have_css(".shift", count: 1)
     expect(page).to have_content(officer.name)
+    expect(page).to have_content(officer.email)
   end
 
   scenario "Empty" do

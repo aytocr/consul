@@ -5,6 +5,9 @@ class Poll < ApplicationRecord
   acts_as_paranoid column: :hidden_at
   include ActsAsParanoidAliases
   include Notifiable
+  include Sluggable
+  include StatsVersionable
+  include Reportable
 
   translates :name,        touch: true
   translates :summary,     touch: true
@@ -20,7 +23,7 @@ class Poll < ApplicationRecord
   has_many :voters
   has_many :officer_assignments, through: :booth_assignments
   has_many :officers, through: :officer_assignments
-  has_many :questions, inverse_of: :poll
+  has_many :questions, inverse_of: :poll, dependent: :destroy
   has_many :comments, as: :commentable
   has_many :ballot_sheets
 
@@ -41,11 +44,24 @@ class Poll < ApplicationRecord
   scope :expired,  -> { where("ends_at < ?", Date.current.beginning_of_day) }
   scope :recounting, -> { Poll.where(ends_at: (Date.current.beginning_of_day - RECOUNT_DURATION)..Date.current.beginning_of_day) }
   scope :published, -> { where("published = ?", true) }
-  scope :by_geozone_id, ->(geozone_id) { where(geozones: {id: geozone_id}.joins(:geozones)) }
+  scope :by_geozone_id, ->(geozone_id) { where(geozones: { id: geozone_id }.joins(:geozones)) }
   scope :public_for_api, -> { all }
   scope :not_budget,    -> { where(budget_id: nil) }
+  scope :created_by_admin, -> { where(related_type: nil) }
 
-  scope :sort_for_list, -> { joins(:translations).order(:geozone_restricted, :starts_at, "poll_translations.name") }
+  def self.sort_for_list
+    all.sort do |poll, another_poll|
+      if poll.geozone_restricted? == another_poll.geozone_restricted?
+        [poll.starts_at, poll.name] <=> [another_poll.starts_at, another_poll.name]
+      else
+        if poll.geozone_restricted?
+          1
+        else
+          -1
+        end
+      end
+    end
+  end
 
   def self.overlaping_with(poll)
     where("? < ends_at and ? >= starts_at", poll.starts_at.beginning_of_day,
@@ -63,6 +79,10 @@ class Poll < ApplicationRecord
 
   def expired?(timestamp = Date.current.beginning_of_day)
     ends_at < timestamp
+  end
+
+  def recounts_confirmed?
+    ends_at < 1.month.ago
   end
 
   def self.current_or_recounting
@@ -88,12 +108,12 @@ class Poll < ApplicationRecord
   end
 
   def votable_by?(user)
-    return false if user_has_an_online_ballot(user)
+    return false if user_has_an_online_ballot?(user)
     answerable_by?(user) &&
     not_voted_by?(user)
   end
 
-  def user_has_an_online_ballot(user)
+  def user_has_an_online_ballot?(user)
     budget.present? && budget.ballots.find_by(user: user)&.lines.present?
   end
 
@@ -127,6 +147,10 @@ class Poll < ApplicationRecord
     unless starts_at.present? && ends_at.present? && starts_at <= ends_at
       errors.add(:starts_at, I18n.t("errors.messages.invalid_date_range"))
     end
+  end
+
+  def generate_slug?
+    slug.nil?
   end
 
   def only_one_active

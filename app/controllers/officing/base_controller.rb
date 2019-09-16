@@ -10,7 +10,7 @@ class Officing::BaseController < ApplicationController
   private
 
     def verify_officer
-      raise CanCan::AccessDenied unless current_user.try(:poll_officer?)
+      raise CanCan::AccessDenied unless current_user&.poll_officer?
     end
 
     def check_officer_assignment
@@ -20,10 +20,7 @@ class Officing::BaseController < ApplicationController
     end
 
     def load_officer_assignment
-      @officer_assignments ||= current_user.poll_officer.
-                               officer_assignments.
-                               voting_days.
-                               where(date: Time.current.to_date)
+      @officer_assignments ||= current_user.poll_officer.officer_assignments.where(date: Time.current.to_date)
     end
 
     def verify_officer_assignment
@@ -48,5 +45,4 @@ class Officing::BaseController < ApplicationController
     def current_booth
       Poll::Booth.where(id: session[:booth_id]).first
     end
-
 end

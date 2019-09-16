@@ -1,6 +1,6 @@
 require "rails_helper"
 
-api_types  = GraphQL::ApiTypesCreator.create(API_TYPE_DEFINITIONS)
+api_types  = GraphQL::ApiTypesCreator.create(GraphqlController::API_TYPE_DEFINITIONS)
 query_type = GraphQL::QueryTypeCreator.create(api_types)
 ConsulSchema = GraphQL::Schema.define do
   query query_type
@@ -296,7 +296,7 @@ describe "Consul Schema" do
       proposal_comment          = create(:comment, commentable: create(:proposal))
       debate_comment            = create(:comment, commentable: create(:debate))
       poll_comment              = create(:comment, commentable: create(:poll))
-      spending_proposal_comment = build(:comment, commentable: create(:spending_proposal)).save(skip_validation: true)
+      budget_investment_comment = build(:comment, commentable: create(:budget_investment)).save(skip_validation: true)
 
       response = execute("{ comments { edges { node { commentable_type } } } }")
       received_commentables = extract_fields(response, "comments", "commentable_type")
@@ -435,7 +435,7 @@ describe "Consul Schema" do
 
   describe "Geozones" do
     it "returns geozones" do
-      geozone_names = [ create(:geozone), create(:geozone) ].map { |geozone| geozone.name }
+      geozone_names = [create(:geozone), create(:geozone)].map { |geozone| geozone.name }
 
       response = execute("{ geozones { edges { node { name } } } }")
       received_names = extract_fields(response, "geozones", "name")
@@ -511,28 +511,29 @@ describe "Consul Schema" do
       expect(received_tags).to match_array ["Parks", "Health"]
     end
 
-    it "uppercase and lowercase tags work ok together for proposals" do
-      create(:tag, name: "Health")
-      create(:tag, name: "health")
-      create(:proposal, tag_list: "health")
-      create(:proposal, tag_list: "Health")
+    context "uppercase and lowercase tags" do
+      let(:uppercase_tag) { create(:tag, name: "Health") }
+      let(:lowercase_tag) { create(:tag, name: "health") }
 
-      response = execute("{ tags { edges { node { name } } } }")
-      received_tags = extract_fields(response, "tags", "name")
+      it "works OK when both tags are present for proposals" do
+        create(:proposal).tags = [uppercase_tag]
+        create(:proposal).tags = [lowercase_tag]
 
-      expect(received_tags).to match_array ["Health", "health"]
-    end
+        response = execute("{ tags { edges { node { name } } } }")
+        received_tags = extract_fields(response, "tags", "name")
 
-    it "uppercase and lowercase tags work ok together for debates" do
-      create(:tag, name: "Health")
-      create(:tag, name: "health")
-      create(:debate, tag_list: "Health")
-      create(:debate, tag_list: "health")
+        expect(received_tags).to match_array ["Health", "health"]
+      end
 
-      response = execute("{ tags { edges { node { name } } } }")
-      received_tags = extract_fields(response, "tags", "name")
+      it "works OK when both tags are present for proposals" do
+        create(:debate).tags = [uppercase_tag]
+        create(:debate).tags = [lowercase_tag]
 
-      expect(received_tags).to match_array ["Health", "health"]
+        response = execute("{ tags { edges { node { name } } } }")
+        received_tags = extract_fields(response, "tags", "name")
+
+        expect(received_tags).to match_array ["Health", "health"]
+      end
     end
 
     it "does not display tags for hidden proposals" do
@@ -584,12 +585,12 @@ describe "Consul Schema" do
       proposal = create(:proposal)
       debate   = create(:debate)
       comment  = create(:comment)
-      spending_proposal = create(:spending_proposal)
+      budget_investment = create(:budget_investment)
 
       proposal_vote = create(:vote, votable: proposal)
       debate_vote   = create(:vote, votable: debate)
       comment_vote  = create(:vote, votable: comment)
-      spending_proposal_vote = create(:vote, votable: spending_proposal)
+      budget_investment_vote = create(:vote, votable: budget_investment)
 
       response = execute("{ votes { edges { node { votable_type } } } }")
       received_votables = extract_fields(response, "votes", "votable_type")

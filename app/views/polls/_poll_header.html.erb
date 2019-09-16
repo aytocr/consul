@@ -7,7 +7,7 @@
         <%= link_to t("polls.poll_header.back_to_proposal"), [@poll.related] %>
       <% end %>
 
-      <h2><%= @poll.name %></h2>
+      <h1><%= @poll.name %></h1>
 
       <%= safe_html_with_links simple_format(@poll.summary) %>
 
@@ -21,13 +21,13 @@
     </div>
 
     <aside class="small-12 medium-3 column margin-top">
-      <%= render partial: "shared/social_share", locals: {
+      <%= render "shared/social_share",
         share_title: t("shared.share"),
         title: @poll.name,
         url: poll_url(@poll),
         description: @poll.name,
         mobile: @poll.name
-      } %>
+      %>
     </aside>
   </div>
 </div>

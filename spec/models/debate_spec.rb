@@ -4,9 +4,13 @@ require "rails_helper"
 describe Debate do
   let(:debate) { build(:debate) }
 
+  it_behaves_like "globalizable", :debate
+
   describe "Concerns" do
     it_behaves_like "has_public_author"
     it_behaves_like "notifiable"
+    it_behaves_like "sanitizable"
+    it_behaves_like "acts as paranoid", :debate
   end
 
   it "is valid" do
@@ -41,17 +45,6 @@ describe Debate do
       expect(debate).not_to be_valid
     end
 
-    it "is sanitized" do
-      debate.description = "<script>alert('danger');</script>"
-      debate.valid?
-      expect(debate.description).to eq("alert('danger');")
-    end
-
-    it "is html_safe" do
-      debate.description = "<script>alert('danger');</script>"
-      expect(debate.description).to be_html_safe
-    end
-
     it "is not valid when very short" do
       debate.description = "abc"
       expect(debate).not_to be_valid
@@ -64,12 +57,6 @@ describe Debate do
   end
 
   describe "#tag_list" do
-    it "sanitizes the tag list" do
-      debate.tag_list = "user_id=1"
-      debate.valid?
-      expect(debate.tag_list).to eq(["user_id1"])
-    end
-
     it "is not valid with a tag list of more than 6 elements" do
       debate.tag_list = ["Hacienda", "Economía", "Medio Ambiente", "Corrupción", "Fiestas populares", "Prensa", "Huelgas"]
       expect(debate).not_to be_valid
@@ -176,52 +163,52 @@ describe Debate do
     describe "from level two verified users" do
       it "registers vote" do
         user = create(:user, residence_verified_at: Time.current, confirmed_phone: "666333111")
-        expect {debate.register_vote(user, "yes")}.to change{debate.reload.votes_for.size}.by(1)
+        expect { debate.register_vote(user, "yes") }.to change { debate.reload.votes_for.size }.by(1)
       end
 
       it "does not increase anonymous votes counter " do
         user = create(:user, residence_verified_at: Time.current, confirmed_phone: "666333111")
-        expect {debate.register_vote(user, "yes")}.not_to change{debate.reload.cached_anonymous_votes_total}
+        expect { debate.register_vote(user, "yes") }.not_to change { debate.reload.cached_anonymous_votes_total }
       end
     end
 
     describe "from level three verified users" do
       it "registers vote" do
         user = create(:user, verified_at: Time.current)
-        expect {debate.register_vote(user, "yes")}.to change{debate.reload.votes_for.size}.by(1)
+        expect { debate.register_vote(user, "yes") }.to change { debate.reload.votes_for.size }.by(1)
       end
 
       it "does not increase anonymous votes counter " do
         user = create(:user, verified_at: Time.current)
-        expect {debate.register_vote(user, "yes")}.not_to change{debate.reload.cached_anonymous_votes_total}
+        expect { debate.register_vote(user, "yes") }.not_to change { debate.reload.cached_anonymous_votes_total }
       end
     end
 
     describe "from anonymous users when anonymous votes are allowed" do
-      before {debate.update(cached_anonymous_votes_total: 42, cached_votes_total: 100)}
+      before { debate.update(cached_anonymous_votes_total: 42, cached_votes_total: 100) }
 
       it "registers vote" do
         user = create(:user)
-        expect {debate.register_vote(user, "yes")}.to change {debate.reload.votes_for.size}.by(1)
+        expect { debate.register_vote(user, "yes") }.to change { debate.reload.votes_for.size }.by(1)
       end
 
       it "increases anonymous votes counter" do
         user = create(:user)
-        expect {debate.register_vote(user, "yes")}.to change {debate.reload.cached_anonymous_votes_total}.by(1)
+        expect { debate.register_vote(user, "yes") }.to change { debate.reload.cached_anonymous_votes_total }.by(1)
       end
     end
 
     describe "from anonymous users when there are too many anonymous votes" do
-      before {debate.update(cached_anonymous_votes_total: 520, cached_votes_total: 1000)}
+      before { debate.update(cached_anonymous_votes_total: 520, cached_votes_total: 1000) }
 
       it "does not register vote " do
         user = create(:user)
-        expect {debate.register_vote(user, "yes")}.not_to change {debate.reload.votes_for.size}
+        expect { debate.register_vote(user, "yes") }.not_to change { debate.reload.votes_for.size }
       end
 
       it "does not increase anonymous votes counter " do
         user = create(:user)
-        expect {debate.register_vote(user, "yes")}.not_to change {debate.reload.cached_anonymous_votes_total}
+        expect { debate.register_vote(user, "yes") }.not_to change { debate.reload.cached_anonymous_votes_total }
       end
     end
   end
@@ -253,7 +240,7 @@ describe Debate do
     it "remains the same for not voted debates" do
       new = create(:debate, created_at: now)
       old = create(:debate, created_at: 1.day.ago)
-      older = create(:debate, created_at: 2.month.ago)
+      older = create(:debate, created_at: 2.months.ago)
       expect(new.hot_score).to be 0
       expect(old.hot_score).to be 0
       expect(older.hot_score).to be 0
@@ -479,15 +466,32 @@ describe Debate do
 
     context "attributes" do
 
+      let(:attributes) { { title: "save the world",
+                           description: "in order to save the world one must think about...",
+                           title_es: "para salvar el mundo uno debe pensar en...",
+                           description_es: "uno debe pensar" } }
+
       it "searches by title" do
-        debate = create(:debate, title: "save the world")
+        debate = create(:debate, attributes)
         results = described_class.search("save the world")
         expect(results).to eq([debate])
       end
 
+      it "searches by title across all languages translations" do
+        debate = create(:debate, attributes)
+        results = described_class.search("salvar el mundo")
+        expect(results).to eq([debate])
+      end
+
       it "searches by description" do
-        debate = create(:debate, description: "in order to save the world one must think about...")
+        debate = create(:debate, attributes)
         results = described_class.search("one must think")
+        expect(results).to eq([debate])
+      end
+
+      it "searches by description across all languages translations" do
+        debate = create(:debate, attributes)
+        results = described_class.search("uno debe pensar")
         expect(results).to eq([debate])
       end
 

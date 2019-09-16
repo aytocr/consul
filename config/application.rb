@@ -20,9 +20,33 @@ module Consul
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     config.i18n.default_locale = :es
     available_locales = [
+      "ar",
+      "bs",
+      "cs",
+      "da",
+      "de",
+      "el",
       "en",
       "es",
-      ]
+      "fa",
+      "fr",
+      "gl",
+      "he",
+      "hr",
+      "id",
+      "it",
+      "nl",
+      "pl",
+      "pt-BR",
+      "ru",
+      "sl",
+      "sq",
+      "so",
+      "sv",
+      "tr",
+      "val",
+      "zh-CN",
+      "zh-TW"]
     config.i18n.available_locales = available_locales
     config.i18n.fallbacks = {
       "fr"    => "es",
@@ -30,10 +54,14 @@ module Consul
       "it"    => "es",
       "pt-BR" => "es"
     }
-    config.i18n.load_path += Dir[Rails.root.join("config", "locales", "**", "*.{rb,yml}")]
+
+    config.i18n.load_path += Dir[Rails.root.join("config", "locales", "**[^custom]*", "*.{rb,yml}")]
     config.i18n.load_path += Dir[Rails.root.join("config", "locales", "custom", "**", "*.{rb,yml}")]
 
-    config.after_initialize { Globalize.set_fallbacks_to_all_available_locales }
+    config.after_initialize do
+      Globalize.set_fallbacks_to_all_available_locales
+      GraphQLApi::Loader.setup
+    end
 
     config.assets.paths << Rails.root.join("app", "assets", "fonts")
     config.assets.paths << Rails.root.join("vendor", "assets", "fonts")

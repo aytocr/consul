@@ -1,6 +1,6 @@
 require "rails_helper"
 
-feature "Admin dashboard actions" do
+describe "Admin dashboard actions" do
   let(:admin) { create :administrator }
 
   before do
@@ -11,7 +11,7 @@ feature "Admin dashboard actions" do
                   "administrator",
                   "dashboard_action",
                   "new_admin_dashboard_action_path",
-                  { },
+                  {},
                   "documentable_fill_new_valid_dashboard_action",
                   "Save",
                   "Action created successfully"

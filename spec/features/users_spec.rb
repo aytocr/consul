@@ -1,15 +1,15 @@
 require "rails_helper"
 
-feature "Users" do
+describe "Users" do
 
-  feature "Show (public page)" do
+  describe "Show (public page)" do
 
-    background do
+    before do
       @user = create(:user)
-      1.times {create(:debate, author: @user)}
-      2.times {create(:proposal, author: @user)}
-      3.times {create(:budget_investment, author: @user)}
-      4.times {create(:comment, user: @user)}
+      1.times { create(:debate, author: @user) }
+      2.times { create(:proposal, author: @user) }
+      3.times { create(:budget_investment, author: @user) }
+      4.times { create(:comment, user: @user) }
 
       visit user_path(@user)
     end
@@ -137,8 +137,8 @@ feature "Users" do
 
   end
 
-  feature "Public activity" do
-    background do
+  describe "Public activity" do
+    before do
       @user = create(:user)
     end
 
@@ -201,9 +201,9 @@ feature "Users" do
       expect(page).not_to have_content("activity list private")
     end
 
-    feature "User email" do
+    describe "User email" do
 
-      background do
+      before do
         @user = create(:user)
       end
 
@@ -231,11 +231,10 @@ feature "Users" do
       end
 
     end
-
   end
 
-  feature "Public interests" do
-    background do
+  describe "Public interests" do
+    before do
       @user = create(:user)
     end
 
@@ -366,7 +365,7 @@ feature "Users" do
     end
   end
 
-  feature "Special comments" do
+  describe "Special comments" do
 
     scenario "comments posted as moderator are not visible in user activity" do
       moderator = create(:administrator).user
@@ -402,9 +401,9 @@ feature "Users" do
 
     scenario "shows only comments from active features" do
       user = create(:user)
-      1.times {create(:comment, user: user, commentable: create(:debate))}
-      2.times {create(:comment, user: user, commentable: create(:budget_investment))}
-      4.times {create(:comment, user: user, commentable: create(:proposal))}
+      1.times { create(:comment, user: user, commentable: create(:debate)) }
+      2.times { create(:comment, user: user, commentable: create(:budget_investment)) }
+      4.times { create(:comment, user: user, commentable: create(:proposal)) }
 
       visit user_path(user)
       expect(page).to have_content("7 Comments")
@@ -419,7 +418,7 @@ feature "Users" do
     end
   end
 
-  feature "Following (public page)" do
+  describe "Following (public page)" do
 
     before do
       @user = create(:user)

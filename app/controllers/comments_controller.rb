@@ -14,6 +14,7 @@ class CommentsController < ApplicationController
     if @comment.save
       CommentNotifier.new(comment: @comment).process
       add_notification @comment
+      EvaluationCommentNotifier.new(comment: @comment).process if send_evaluation_notification?
     else
       render :new
     end
@@ -84,7 +85,7 @@ class CommentsController < ApplicationController
 
     def add_notification(comment)
       notifiable = comment.reply? ? comment.parent : comment.commentable
-      notifiable_author_id = notifiable.try(:author_id)
+      notifiable_author_id = notifiable&.author_id
       if notifiable_author_id.present? && notifiable_author_id != comment.author_id
         Notification.add(notifiable.author, notifiable)
       end
@@ -107,4 +108,7 @@ class CommentsController < ApplicationController
       end
     end
 
+    def send_evaluation_notification?
+      @comment.valuation && Setting["feature.valuation_comment_notification"]
+    end
 end

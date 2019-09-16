@@ -1,14 +1,14 @@
 require "rails_helper"
 
-feature "Admin Notifications" do
+describe "Admin Notifications" do
 
-  background do
+  before do
     admin = create(:administrator)
     login_as(admin.user)
     create(:budget)
   end
 
-  it_behaves_like "translatable",
+  it_behaves_like "edit_translatable",
                   "admin_notification",
                   "edit_admin_admin_notification_path",
                   %w[title body]
@@ -97,7 +97,6 @@ feature "Admin Notifications" do
       within("#admin_notification_#{notification.id}") do
         click_link "Edit"
       end
-
 
       fill_in_admin_notification_form(segment_recipient: "All users",
                                       title: "Other title",

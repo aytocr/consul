@@ -1,3 +1,5 @@
+require "csv"
+
 class Proposal < ApplicationRecord
   include Rails.application.routes.url_helpers
   include Flaggable
@@ -15,9 +17,6 @@ class Proposal < ApplicationRecord
   include Mappable
   include Notifiable
   include Documentable
-  documentable max_documents_allowed: 3,
-               max_file_size: 3.megabytes,
-               accepted_content_types: [ "application/pdf" ]
   include EmbedVideosHelper
   include Relationable
   include Milestoneable
@@ -29,6 +28,13 @@ class Proposal < ApplicationRecord
 
   RETIRE_OPTIONS = %w[duplicated started unfeasible done other]
 
+  translates :title, touch: true
+  translates :description, touch: true
+  translates :summary, touch: true
+  translates :retired_explanation, touch: true
+  include Globalizable
+  translation_class_delegate :retired_at
+
   belongs_to :author, -> { with_hidden }, class_name: "User", foreign_key: "author_id"
   belongs_to :geozone
   has_many :comments, as: :commentable, dependent: :destroy
@@ -37,17 +43,19 @@ class Proposal < ApplicationRecord
   has_many :dashboard_actions, through: :dashboard_executed_actions, class_name: "Dashboard::Action"
   has_many :polls, as: :related
 
-  validates :title, presence: true
-  validates :question, presence: true
-  validates :summary, presence: true
+  extend DownloadSettings::ProposalCsv
+  delegate :name, :email, to: :author, prefix: true
+
+  validates_translation :title, presence: true, length: { in: 4..Proposal.title_max_length }
+  validates_translation :description, length: { maximum: Proposal.description_max_length }
+  validates_translation :summary, presence: true
+  validates_translation :retired_explanation, presence: true, unless: -> { retired_at.blank? }
+
   validates :author, presence: true
   validates :responsible_name, presence: true, unless: :skip_user_verification?
 
-  validates :title, length: { in: 4..Proposal.title_max_length }
-  validates :description, length: { maximum: Proposal.description_max_length }
-  validates :question, length: { in: 10..Proposal.question_max_length }
   validates :responsible_name, length: { in: 6..Proposal.responsible_name_max_length }, unless: :skip_user_verification?
-  validates :retired_reason, inclusion: { in: RETIRE_OPTIONS, allow_nil: true }
+  validates :retired_reason, presence: true, inclusion: { in: RETIRE_OPTIONS }, unless: -> { retired_at.blank? }
 
   validates :terms_of_service, acceptance: { allow_nil: false }, on: :create
 
@@ -70,12 +78,14 @@ class Proposal < ApplicationRecord
   scope :sort_by_recommendations,  -> { order(cached_votes_up: :desc) }
   scope :archived,                 -> { where("proposals.created_at <= ?", Setting["months_to_archive_proposals"].to_i.months.ago) }
   scope :not_archived,             -> { where("proposals.created_at > ?", Setting["months_to_archive_proposals"].to_i.months.ago) }
-  scope :last_week,                -> { where("proposals.created_at >= ?", 7.days.ago)}
+  scope :last_week,                -> { where("proposals.created_at >= ?", 7.days.ago) }
   scope :retired,                  -> { where.not(retired_at: nil) }
   scope :not_retired,              -> { where(retired_at: nil) }
   scope :successful,               -> { where("cached_votes_up >= ?", Proposal.votes_needed_for_success) }
   scope :unsuccessful,             -> { where("cached_votes_up < ?", Proposal.votes_needed_for_success) }
   scope :public_for_api,           -> { all }
+  scope :selected,                 -> { where(selected: true) }
+  scope :not_selected,             -> { where(selected: false) }
   scope :not_supported_by_user,    ->(user) { where.not(id: user.find_voted_items(votable_type: "Proposal").compact.map(&:id)) }
   scope :published,                -> { where.not(published_at: nil) }
   scope :draft,                    -> { where(published_at: nil) }
@@ -86,7 +96,7 @@ class Proposal < ApplicationRecord
   end
 
   def publish
-    update(published_at: Time.now)
+    update(published_at: Time.current)
     send_new_actions_notification_on_published
   end
 
@@ -115,20 +125,23 @@ class Proposal < ApplicationRecord
     "#{id}-#{title}".parameterize
   end
 
+  def searchable_translations_definitions
+    { title       => "A",
+      summary     => "C",
+      description => "D" }
+  end
+
   def searchable_values
-    { title              => "A",
-      question           => "B",
-      author.username    => "B",
-      tag_list.join(" ") => "B",
-      geozone.try(:name) => "B",
-      summary            => "C",
-      description        => "D"
-    }
+    {
+      author.username       => "B",
+      tag_list.join(" ")    => "B",
+      geozone&.name         => "B"
+    }.merge!(searchable_globalized_values)
   end
 
   def self.search(terms)
     by_code = search_by_code(terms.strip)
-    by_code.present? ? by_code : pg_search(terms)
+    by_code.presence || pg_search(terms)
   end
 
   def self.search_by_code(terms)
@@ -200,11 +213,11 @@ class Proposal < ApplicationRecord
   end
 
   def after_hide
-    tags.each{ |t| t.decrement_custom_counter_for("Proposal") }
+    tags.each { |t| t.decrement_custom_counter_for("Proposal") }
   end
 
   def after_restore
-    tags.each{ |t| t.increment_custom_counter_for("Proposal") }
+    tags.each { |t| t.increment_custom_counter_for("Proposal") }
   end
 
   def self.votes_needed_for_success
@@ -260,5 +273,4 @@ class Proposal < ApplicationRecord
         self.responsible_name = author.document_number
       end
     end
-
 end

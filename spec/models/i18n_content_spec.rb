@@ -27,20 +27,6 @@ RSpec.describe I18nContent, type: :model do
       expect(query.size).to eq(1)
       expect(query).to eq([debate_title])
     end
-
-    it "return all matching records when #begins_with_key is used" do
-      debate_text    = create(:i18n_content, key: "debates.form.debate_text")
-      debate_title   = create(:i18n_content, key: "debates.form.debate_title")
-      proposal_title = create(:i18n_content, key: "proposals.form.proposal_title")
-
-      expect(I18nContent.all.size).to eq(3)
-
-      query = I18nContent.begins_with_key("debates")
-
-      expect(query.size).to eq(2)
-      expect(query).to eq([debate_text, debate_title])
-      expect(query).not_to include(proposal_title)
-    end
   end
 
   context "Globalize" do
@@ -88,7 +74,7 @@ RSpec.describe I18nContent, type: :model do
         "w" => "string"
       })
 
-      expect(I18nContent.flat_hash({ w: { p: "string" } })).to eq({
+      expect(I18nContent.flat_hash({ w: { p: "string" }})).to eq({
         "w.p" => "string"
       })
     end
@@ -106,7 +92,7 @@ RSpec.describe I18nContent, type: :model do
         "f.w" => "string"
       })
 
-      expect(I18nContent.flat_hash({ w: { p: "string" } }, "f")).to eq({
+      expect(I18nContent.flat_hash({ w: { p: "string" }}, "f")).to eq({
         "f.w.p" => "string"
       })
     end
@@ -126,7 +112,7 @@ RSpec.describe I18nContent, type: :model do
         "w" => "string"
       })
 
-      expect(I18nContent.flat_hash({w: { p: "string" } }, nil, { q: "other string" })).to eq({
+      expect(I18nContent.flat_hash({ w: { p: "string" }}, nil, { q: "other string" })).to eq({
         q: "other string",
         "w.p" => "string"
       })
@@ -147,7 +133,7 @@ RSpec.describe I18nContent, type: :model do
         "f.w" => "string"
       })
 
-      expect(I18nContent.flat_hash({ w: { p: "string" } }, "f", { q: "other string" })).to eq({
+      expect(I18nContent.flat_hash({ w: { p: "string" }}, "f", { q: "other string" })).to eq({
         q: "other string",
         "f.w.p" => "string"
       })

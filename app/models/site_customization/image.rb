@@ -5,7 +5,8 @@ class SiteCustomization::Image < ApplicationRecord
     "social_media_icon_twitter" => [246, 246],
     "apple-touch-icon-200" => [200, 200],
     "budget_execution_no_image" => [800, 600],
-    "map" => [420, 500]
+    "map" => [420, 500],
+    "logo_email" => [400, 80]
   }
 
   has_attached_file :image
@@ -28,11 +29,11 @@ class SiteCustomization::Image < ApplicationRecord
   end
 
   def required_width
-    VALID_IMAGES[name].try(:first)
+    VALID_IMAGES[name]&.first
   end
 
   def required_height
-    VALID_IMAGES[name].try(:second)
+    VALID_IMAGES[name]&.second
   end
 
   private

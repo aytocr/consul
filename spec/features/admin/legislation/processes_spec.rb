@@ -1,13 +1,13 @@
 require "rails_helper"
 
-feature "Admin collaborative legislation" do
+describe "Admin collaborative legislation" do
 
-  background do
+  before do
     admin = create(:administrator)
     login_as(admin.user)
   end
 
-  it_behaves_like "translatable",
+  it_behaves_like "edit_translatable",
                   "legislation_process",
                   "edit_admin_legislation_process_path",
                   %w[title summary description additional_info]
@@ -20,7 +20,7 @@ feature "Admin collaborative legislation" do
 
     scenario "Disabled with a feature flag" do
       Setting["process.legislation"] = nil
-      expect{ visit admin_legislation_processes_path }
+      expect { visit admin_legislation_processes_path }
       .to raise_exception(FeatureFlags::FeatureDisabled)
     end
 
@@ -51,7 +51,7 @@ feature "Admin collaborative legislation" do
 
     scenario "Processes are sorted by descending start date" do
       process_1 = create(:legislation_process, title: "Process 1", start_date: Date.yesterday)
-      process_2 = create(:legislation_process, title: "Process 2", start_date: Date.today)
+      process_2 = create(:legislation_process, title: "Process 2", start_date: Date.current)
       process_3 = create(:legislation_process, title: "Process 3", start_date: Date.tomorrow)
 
       visit admin_legislation_processes_path(filter: "all")
@@ -97,7 +97,7 @@ feature "Admin collaborative legislation" do
       fill_in "legislation_process[draft_start_date]",
                with: (base_date - 3.days).strftime("%d/%m/%Y")
       fill_in "legislation_process[draft_end_date]",
-               with: (base_date - 1.days).strftime("%d/%m/%Y")
+               with: (base_date - 1.day).strftime("%d/%m/%Y")
       fill_in "legislation_process[draft_publication_date]",
                with: (base_date + 3.days).strftime("%d/%m/%Y")
       fill_in "legislation_process[allegations_start_date]",
@@ -280,6 +280,27 @@ feature "Admin collaborative legislation" do
       visit milestones_legislation_process_path(process)
 
       expect(page).to have_content "There is still a long journey ahead of us"
+    end
+  end
+
+  context "Special interface translation behaviour" do
+    let!(:process) { create(:legislation_process) }
+
+    before { Setting["feature.translation_interface"] = true }
+    after { Setting["feature.translation_interface"] = nil }
+
+    scenario "Cant manage translations on homepage form" do
+      visit edit_admin_legislation_process_homepage_path(process)
+
+      expect(page).not_to have_css "#add_language"
+      expect(page).not_to have_link "Remove language"
+    end
+
+    scenario "Cant manage translations on milestones summary form" do
+      visit admin_legislation_process_milestones_path(process)
+
+      expect(page).not_to have_css "#add_language"
+      expect(page).not_to have_link "Remove language"
     end
   end
 end

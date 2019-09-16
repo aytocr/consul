@@ -24,6 +24,8 @@ class Document < ApplicationRecord
   before_save :set_attachment_from_cached_attachment, if: -> { cached_attachment.present? }
   after_save :remove_cached_attachment,               if: -> { cached_attachment.present? }
 
+  scope :admin, -> { where(admin: true) }
+
   def set_cached_attachment_from_attachment
     self.cached_attachment = if Paperclip::Attachment.default_options[:storage] == :filesystem
                                attachment.path
@@ -58,11 +60,11 @@ class Document < ApplicationRecord
 
   def custom_hash_data(attachment)
     original_filename = if !attachment.instance.persisted? && attachment.instance.remove
-      attachment.instance.original_filename
+                          attachment.instance.original_filename
                         elsif !attachment.instance.persisted?
-      attachment.instance.attachment_file_name
+                          attachment.instance.attachment_file_name
                         else
-      attachment.instance.title
+                          attachment.instance.title
                         end
     "#{attachment.instance.user_id}/#{original_filename}"
   end

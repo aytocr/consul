@@ -1,5 +1,5 @@
 class UsersController < ApplicationController
-  has_filters %w{proposals debates budget_investments comments follows}, only: :show
+  has_filters %w[proposals debates budget_investments comments follows], only: :show
 
   load_and_authorize_resource
   helper_method :author?
@@ -12,7 +12,7 @@ class UsersController < ApplicationController
   private
 
     def set_activity_counts
-      @activity_counts = HashWithIndifferentAccess.new(
+      @activity_counts = ActiveSupport::HashWithIndifferentAccess.new(
                           proposals: Proposal.where(author_id: @user.id).count,
                           debates: (Setting["process.debates"] ? Debate.where(author_id: @user.id).count : 0),
                           budget_investments: (Setting["process.budgets"] ? Budget::Investment.where(author_id: @user.id).count : 0),

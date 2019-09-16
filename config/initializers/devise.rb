@@ -12,11 +12,7 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  if Rails.env.test? || !ActiveRecord::Base.connection.data_source_exists?("settings")
-    config.mailer_sender = "noreply@consul.dev"
-  else
-    config.mailer_sender = "'#{Setting["mailer_from_name"]}' <#{Setting["mailer_from_address"]}>"
-  end
+  config.mailer_sender = Proc.new { "'#{Setting["mailer_from_name"]}' <#{Setting["mailer_from_address"]}>" }
 
   # Configure the class responsible to send e-mails.
   config.mailer = "DeviseMailer"
@@ -76,7 +72,7 @@ Devise.setup do |config|
   # It will change confirmation, password recovery and other workflows
   # to behave the same regardless if the e-mail provided was right or wrong.
   # Does not affect registerable.
-  # config.paranoid = true
+  config.paranoid = true
 
   # By default Devise will store the user in session. You can skip storage for
   # particular strategies by setting this option.

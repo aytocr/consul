@@ -37,16 +37,6 @@ class Mailer < ApplicationMailer
     end
   end
 
-  def unfeasible_spending_proposal(spending_proposal)
-    @spending_proposal = spending_proposal
-    @author = spending_proposal.author
-    @email_to = @author.email
-
-    with_user(@author) do
-      mail(to: @email_to, subject: t("mailers.unfeasible_spending_proposal.subject", code: @spending_proposal.code))
-    end
-  end
-
   def direct_message_for_receiver(direct_message)
     @direct_message = direct_message
     @receiver = @direct_message.receiver
@@ -130,18 +120,25 @@ class Mailer < ApplicationMailer
     mail(to: @email_to, from: @newsletter.from, subject: @newsletter.subject)
   end
 
+  def evaluation_comment(comment, to)
+    @email = EvaluationCommentEmail.new(comment)
+    @email_to = to
+
+    mail(to: @email_to.email, subject: @email.subject) if @email.can_be_sent?
+  end
+
   private
 
-  def with_user(user, &block)
-    I18n.with_locale(user.locale) do
-      yield
+    def with_user(user, &block)
+      I18n.with_locale(user.locale) do
+        yield
+      end
     end
-  end
 
-  def prevent_delivery_to_users_without_email
-    if @email_to.blank?
-      mail.perform_deliveries = false
+    def prevent_delivery_to_users_without_email
+      if @email_to.blank?
+        mail.perform_deliveries = false
+      end
     end
-  end
 
 end

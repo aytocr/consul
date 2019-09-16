@@ -1,6 +1,6 @@
 require "rails_helper"
 
-feature "Moderate users" do
+describe "Moderate users" do
 
   scenario "Hide" do
     citizen = create(:user)
@@ -63,9 +63,9 @@ feature "Moderate users" do
     click_button "Search"
 
     within("#moderation_users") do
-        expect(page).to have_content citizen.name
-        expect(page).not_to have_content "Blocked"
-        click_link "Block"
+      expect(page).to have_content citizen.name
+      expect(page).not_to have_content "Blocked"
+      click_link "Block"
     end
 
     within("#moderation_users") do

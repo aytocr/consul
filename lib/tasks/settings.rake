@@ -2,6 +2,8 @@ namespace :settings do
 
   desc "Remove deprecated settings"
   task remove_deprecated_settings: :environment do
+    ApplicationLogger.new.info "Removing deprecated settings"
+
     deprecated_keys = [
       "place_name",
       "banner-style.banner-style-one",
@@ -10,7 +12,15 @@ namespace :settings do
       "banner-img.banner-img-one",
       "banner-img.banner-img-two",
       "banner-img.banner-img-three",
-      "verification_offices_url"
+      "verification_offices_url",
+      "feature.spending_proposals",
+      "feature.spending_proposal_features.phase1",
+      "feature.spending_proposal_features.phase2",
+      "feature.spending_proposal_features.phase3",
+      "feature.spending_proposal_features.voting_allowed",
+      "feature.spending_proposal_features.final_voting_allowed",
+      "feature.spending_proposal_features.open_results_page",
+      "feature.spending_proposal_features.valuation_allowed"
     ]
 
     deprecated_keys.each do |key|
@@ -20,6 +30,7 @@ namespace :settings do
 
   desc "Rename existing settings"
   task rename_setting_keys: :environment do
+    ApplicationLogger.new.info "Renaming existing settings"
     Setting.rename_key from: "map_latitude",  to: "map.latitude"
     Setting.rename_key from: "map_longitude", to: "map.longitude"
     Setting.rename_key from: "map_zoom",      to: "map.zoom"
@@ -36,6 +47,12 @@ namespace :settings do
     Setting.rename_key from: "feature.homepage.widgets.feeds.proposals", to: "homepage.widgets.feeds.proposals"
     Setting.rename_key from: "feature.homepage.widgets.feeds.debates",   to: "homepage.widgets.feeds.debates"
     Setting.rename_key from: "feature.homepage.widgets.feeds.processes", to: "homepage.widgets.feeds.processes"
+  end
+
+  desc "Add new settings"
+  task add_new_settings: :environment do
+    ApplicationLogger.new.info "Adding new settings"
+    Setting.add_new_settings
   end
 
 end

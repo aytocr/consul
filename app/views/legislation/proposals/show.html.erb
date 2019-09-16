@@ -10,6 +10,17 @@
   <%= render "shared/canonical", href: legislation_process_proposal_url(process_id: @process) %>
 <% end %>
 
+<div class="row process-proposal">
+  <div class="small-12 column">
+    <div class="header">
+      <p class="process-title">
+        <strong><%= t("legislation.proposals.process_title") %></strong>
+      </p>
+      <%= link_to @process.title, @process, class: "process-link" %>
+    </div>
+  </div>
+</div>
+
 <% cache [locale_and_user_status(@proposal), @proposal, @proposal.author, Flag.flagged?(current_user, @proposal), @legislation_proposal_votes] do %>
   <div class="proposal-show legislation-proposal-show">
     <div id="<%= dom_id(@proposal) %>" class="row">
@@ -52,22 +63,12 @@
         <% if @proposal.video_url.present? %>
           <div class="small-12 medium-7 small-centered">
             <div class="flex-video">
-              <div id="js-embedded-video" data-video-code="<%= embedded_video_code %>"></div>
+              <div id="js-embedded-video" data-video-code="<%= embedded_video_code(@proposal) %>"></div>
             </div>
           </div>
         <% end %>
 
         <%= safe_html_with_links @proposal.description %>
-
-        <% if @proposal.external_url.present? %>
-          <div class="document-link">
-            <p>
-              <span class="icon-document"></span>&nbsp;
-              <strong><%= t("proposals.show.title_external_url") %></strong>
-            </p>
-              <%= text_with_links @proposal.external_url %>
-          </div>
-        <% end %>
 
         <% if @proposal.video_url.present? %>
           <div class="video-link">
@@ -79,8 +80,6 @@
           </div>
 
         <% end %>
-
-        <h4><%= @proposal.question %></h4>
 
         <% if feature?(:allow_attached_documents) %>
           <%= render "documents/documents",
@@ -104,13 +103,13 @@
           <%= render "votes",
                     { proposal: @proposal, vote_url: vote_legislation_process_proposal_path(@proposal.legislation_process_id, @proposal, value: "yes") } %>
         </div>
-        <%= render partial: "shared/social_share", locals: {
+        <%= render "shared/social_share",
           share_title: t("proposals.show.share"),
           title: @proposal.title,
           url: legislation_process_proposal_url(process_id: @process),
           description: @proposal.summary,
           mobile: @proposal.title
-        } %>
+        %>
       </aside>
     </div>
   </div>

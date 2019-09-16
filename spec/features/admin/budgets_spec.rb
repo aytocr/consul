@@ -1,25 +1,48 @@
 require "rails_helper"
 
-feature "Admin budgets" do
+describe "Admin budgets" do
 
-  background do
+  before do
     admin = create(:administrator)
     login_as(admin.user)
   end
 
-  it_behaves_like "translatable",
+  it_behaves_like "edit_translatable",
                   "budget",
                   "edit_admin_budget_path",
                   %w[name]
 
   context "Feature flag" do
 
-    background do
+    before do
       Setting["process.budgets"] = nil
     end
 
     scenario "Disabled with a feature flag" do
-      expect{ visit admin_budgets_path }.to raise_exception(FeatureFlags::FeatureDisabled)
+      expect { visit admin_budgets_path }.to raise_exception(FeatureFlags::FeatureDisabled)
+    end
+
+  end
+
+  context "Load" do
+
+    let!(:budget) { create(:budget, slug: "budget_slug") }
+
+    scenario "finds budget by slug" do
+      visit admin_budget_path("budget_slug")
+      expect(page).to have_content(budget.name)
+    end
+
+    scenario "raises an error if budget slug is not found" do
+      expect do
+        visit admin_budget_path("wrong_budget")
+      end.to raise_error ActiveRecord::RecordNotFound
+    end
+
+    scenario "raises an error if budget id is not found" do
+      expect do
+        visit admin_budget_path(0)
+      end.to raise_error ActiveRecord::RecordNotFound
     end
 
   end
@@ -70,7 +93,7 @@ feature "Admin budgets" do
     end
 
     scenario "Open filter is properly highlighted" do
-      filters_links = {"current" => "Open", "finished" => "Finished"}
+      filters_links = { "current" => "Open", "finished" => "Finished" }
 
       visit admin_budgets_path
 
@@ -148,7 +171,17 @@ feature "Admin budgets" do
       click_link "Edit budget"
       click_link "Delete budget"
 
-      expect(page).to have_content("You cannot destroy a Budget that has associated investments")
+      expect(page).to have_content("You cannot delete a budget that has associated investments")
+      expect(page).to have_content("There is 1 budget")
+    end
+
+    scenario "Try to destroy a budget with polls" do
+      create(:poll, budget: budget)
+
+      visit edit_admin_budget_path(budget)
+      click_link "Delete budget"
+
+      expect(page).to have_content("You cannot delete a budget that has an associated poll")
       expect(page).to have_content("There is 1 budget")
     end
   end
@@ -194,7 +227,7 @@ feature "Admin budgets" do
 
       visit edit_admin_budget_path(budget)
 
-      select "Español", from: "translation_locale"
+      select "Español", from: :add_language
       fill_in "Name", with: "Spanish name"
       click_button "Update Budget"
 
@@ -203,7 +236,7 @@ feature "Admin budgets" do
 
       visit edit_admin_budget_path(budget)
 
-      click_link "English"
+      select "English", from: :select_language
       fill_in "Name", with: "New English Name"
       click_button "Update Budget"
 
@@ -216,7 +249,7 @@ feature "Admin budgets" do
 
   context "Update" do
 
-    background do
+    before do
       create(:budget)
     end
 
@@ -253,13 +286,12 @@ feature "Admin budgets" do
       expect(page).not_to have_content unselected.title
       expect(page).not_to have_content selected.title
 
-
       visit edit_admin_budget_path(budget)
       expect(page).to have_content "See results"
     end
 
     scenario "For a finished Budget" do
-      budget = create(:budget, phase: "finished")
+      budget = create(:budget, :finished)
       allow_any_instance_of(Budget).to receive(:has_winning_investments?).and_return(true)
 
       visit edit_admin_budget_path(budget)
@@ -269,7 +301,7 @@ feature "Admin budgets" do
     end
 
     scenario "Recalculate for a finished Budget" do
-      budget = create(:budget, phase: "finished")
+      budget = create(:budget, :finished)
       group = create(:budget_group, budget: budget)
       heading = create(:budget_heading, group: group)
       create(:budget_investment, :winner, heading: heading)

@@ -3,7 +3,7 @@ require "rails_helper"
 describe User do
 
   describe "#headings_voted_within_group" do
-    it "returns the headings voted by a user ordered by name" do
+    it "returns the headings voted by a user" do
       user1 = create(:user)
       user2 = create(:user)
 
@@ -34,6 +34,15 @@ describe User do
       expect(user2.headings_voted_within_group(group)).not_to include(new_york)
       expect(user2.headings_voted_within_group(group)).not_to include(san_franciso)
       expect(user2.headings_voted_within_group(group)).not_to include(another_heading)
+    end
+
+    it "returns headings with multiple translations only once" do
+      user = create(:user)
+      group = create(:budget_group)
+      heading = create(:budget_heading, group: group, name_en: "English", name_es: "Spanish")
+      create(:vote, votable: create(:budget_investment, heading: heading), voter: user)
+
+      expect(user.headings_voted_within_group(group).count).to eq 1
     end
   end
 
@@ -243,7 +252,7 @@ describe User do
   end
 
   describe "organization_attributes" do
-    before { subject.organization_attributes = {name: "org", responsible_name: "julia"} }
+    before { subject.organization_attributes = { name: "org", responsible_name: "julia" } }
 
     it "triggers the creation of an associated organization" do
       expect(subject.organization).to be
@@ -452,18 +461,18 @@ describe User do
 
     it "expires cache with becoming a moderator" do
       expect { create(:moderator, user: user) }
-      .to change { user.updated_at}
+      .to change { user.updated_at }
     end
 
     it "expires cache with becoming an admin" do
       expect { create(:administrator, user: user) }
-      .to change { user.updated_at}
+      .to change { user.updated_at }
     end
 
     it "expires cache with becoming a veridied organization" do
       create(:organization, user: user)
       expect { user.organization.verify }
-      .to change { user.reload.updated_at}
+      .to change { user.reload.updated_at }
     end
   end
 

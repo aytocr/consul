@@ -168,7 +168,6 @@ describe Budget::Heading do
     end
   end
 
-
   describe "save longitude" do
 
     it "Doesn't allow longitude < -180" do
@@ -267,7 +266,6 @@ describe Budget::Heading do
     end
   end
 
-
   describe "heading" do
     it "can be deleted if no budget's investments associated" do
       heading1 = create(:budget_heading, group: group, name: "name")
@@ -318,6 +316,12 @@ describe Budget::Heading do
       expect(Budget::Heading.allow_custom_content.count).to be 2
       expect(Budget::Heading.allow_custom_content.first).to eq first_heading
       expect(Budget::Heading.allow_custom_content.last).to eq last_heading
+    end
+
+    it "returns headings with multiple translations only once" do
+      create(:budget_heading, allow_custom_content: true, name_en: "English", name_es: "Spanish")
+
+      expect(Budget::Heading.allow_custom_content.count).to eq 1
     end
   end
 
